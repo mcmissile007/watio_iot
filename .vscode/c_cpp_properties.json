@@ -1,0 +1,47 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                /*
+                "${env:IDF_PATH}/components/**",
+                "${env:IDF_PATH}/components/esp-tls",
+                "${env:IDF_PATH}/examples/common_components/protocol_examples_common/include",
+                "${env:IDF_PATH}/components/lwip/include/apps/sntp"*/
+                "${env:IDF_PATH}/components/components/include",
+                "${env:IDF_PATH}/components/log/include",
+                "${env:IDF_PATH}/components/nvs_flash/include",
+                "${env:IDF_PATH}/components/esp_event/include",
+                "${env:IDF_PATH}/components/lwip/port/esp8266/include/",
+                "${env:IDF_PATH}/components/lwip/include/apps/**",
+                "${env:IDF_PATH}/components/mbedtls/**",
+                "${env:IDF_PATH}/components/tcpip_adapter/include",
+                "${env:IDF_PATH}/components/esp_common/include",
+                "${env:IDF_PATH}/components/spi_flash/include",
+                "${env:IDF_PATH}/components/heap/include",
+                "${env:IDF_PATH}/components/heap/port/esp8266/include",
+                "${env:IDF_PATH}/components/esp8266/include",
+                "${env:IDF_PATH}/components/freertos/include",
+                "${env:IDF_PATH}/components/freertos/include/freertos/private",
+                "${env:IDF_PATH}/components/freertos/port/esp8266/include",
+                "${env:IDF_PATH}/components/freertos/port/esp8266/include/freertos",
+                "${env:IDF_PATH}/components/lwip/include/apps/sntp",
+                "${env:IDF_PATH}/components/lwip/lwip/src/include",
+                "${env:IDF_PATH}/components/lwip/lwip/test/unit/arch",
+                "${env:IDF_PATH}/components/esp-tls",
+                "${env:IDF_PATH}/components/json/cJSON",
+                "${env:IDF_PATH}/components/esp_http_server/include",
+                "${env:IDF_PATH}/components/http_parser/include",
+                "${env:IDF_PATH}/examples/common_components/protocol_examples_common/include"
+                
+            ],
+            "defines": ["__ESP_FILE__=\"${workspaceRoot}/main/main.c\""],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
