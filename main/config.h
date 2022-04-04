@@ -1,6 +1,6 @@
 #define CONFIG_NAMESPACE "config"
 #define CONFIG_WIFI_SSID_KEY "wifi_ssid"
-#define CONFIG_WIFI_SSID_PASS "wifi_pass"
+#define CONFIG_WIFI_PASS_KEY "wifi_pass"
 
 
 #define SOFT_AP_SSID "DonWatio"

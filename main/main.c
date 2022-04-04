@@ -17,7 +17,7 @@
 
 
 void common_init(){
-    //use for many components.
+    //used by many components.
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
 }

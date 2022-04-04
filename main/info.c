@@ -82,7 +82,7 @@ bool is_wifi_configured()
     char *wifi_ssid = NULL;
     char *wifi_pass = NULL;
     wifi_ssid = (char *)get_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_SSID_KEY);
-    wifi_pass = (char *)get_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_SSID_PASS);
+    wifi_pass = (char *)get_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_PASS_KEY);
     if (wifi_ssid && wifi_pass)
     {
         ESP_LOGI(TAG, "wifi configured -> ssid:%s password:%s", wifi_ssid, wifi_pass);
