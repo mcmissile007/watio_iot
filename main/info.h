@@ -28,5 +28,6 @@ char *get_config_str(const char * namespace,const char *key);
  * Output:   
  */
 bool is_wifi_configured();
-
+int set_config_str(const char *namespace,const char *key,const char * value);
+int commit_info(const char *namespace);
 #endif

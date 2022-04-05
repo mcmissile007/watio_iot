@@ -34,6 +34,45 @@ void memory_info(const char *msg)
     ESP_LOGI(TAG, "%s,free heap size: %d\n", msg, esp_get_free_heap_size());
 }
 
+
+int set_config_str(const char *namespace,const char *key,const char * value){
+    nvs_handle_t nvs_handle_conf;
+    esp_err_t retval;
+    retval = nvs_open(namespace, NVS_READWRITE, &nvs_handle_conf);
+    if (retval != ESP_OK)
+    {
+        ESP_LOGE(TAG, "nvs_open:%s", esp_err_to_name(retval));
+        return ESP_FAIL;
+    }
+    retval = nvs_set_str(nvs_handle_conf,key,value);
+
+    if (retval != ESP_OK)
+    {
+        ESP_LOGE(TAG, "nvs_set_str error:%s", esp_err_to_name(retval));
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+
+}
+ int commit_info(const char *namespace){
+    nvs_handle_t nvs_handle_conf;
+    esp_err_t retval;
+    retval = nvs_open(namespace, NVS_READWRITE, &nvs_handle_conf);
+    if (retval != ESP_OK)
+    {
+        ESP_LOGE(TAG, "nvs_open:%s", esp_err_to_name(retval));
+        return ESP_FAIL;
+    }
+    retval = nvs_commit(nvs_handle_conf);
+    if (retval != ESP_OK)
+    {
+        ESP_LOGE(TAG, "nvs_commit:%s", esp_err_to_name(retval));
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+
+ }
+
 char *get_config_str(const char *namespace, const char *key)
 {
 
@@ -43,7 +82,7 @@ char *get_config_str(const char *namespace, const char *key)
 
     char *value = NULL;
 
-    retval = nvs_open(namespace, NVS_READWRITE, &nvs_handle_conf);
+    retval = nvs_open(namespace, NVS_READONLY, &nvs_handle_conf);
     if (retval != ESP_OK)
     {
         ESP_LOGE(TAG, "nvs_open:%s", esp_err_to_name(retval));
