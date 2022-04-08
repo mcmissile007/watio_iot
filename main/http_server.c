@@ -6,7 +6,6 @@
 #include "esp_log.h"
 #include "http_server.h"
 #include "cJSON.h"
-
 // app includes
 #include "config.h"
 #include "urldecode.h"
@@ -16,80 +15,79 @@
 
 static httpd_handle_t server = NULL;
 
-
-static int save_wifi_post_data(const char * httpd_data,char * httpd_status)
+static int save_wifi_post_data(const char *httpd_data, char *httpd_status)
 {
     int httpd_code;
-    ESP_LOGI(TAG,"save_wifi_post_data:%s",httpd_data);
+    ESP_LOGI(TAG, "save_wifi_post_data:%s", httpd_data);
     cJSON *json_data = cJSON_Parse(httpd_data);
-    if (json_data == NULL){
-        ESP_LOGE(TAG,"cJSON Parse error");
+    if (json_data == NULL)
+    {
+        ESP_LOGE(TAG, "cJSON Parse error");
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL)
         {
             ESP_LOGE(TAG, "Error: %s\n", error_ptr);
         }
-        strcpy(httpd_status,HTTPD_500);
+        strcpy(httpd_status, HTTPD_500);
         httpd_code = 500;
         goto end;
     }
-    cJSON * json_ssid = cJSON_GetObjectItemCaseSensitive(json_data,"ssid");
-    if (cJSON_IsString(json_ssid) && json_ssid->valuestring != NULL){
-        ESP_LOGI(TAG,"Received ssid:%s",json_ssid->valuestring);
+    cJSON *json_ssid = cJSON_GetObjectItemCaseSensitive(json_data, "ssid");
+    if (cJSON_IsString(json_ssid) && json_ssid->valuestring != NULL)
+    {
+        ESP_LOGI(TAG, "Received ssid:%s", json_ssid->valuestring);
     }
-    else{
-        ESP_LOGE(TAG,"Bad request. ssid not present.");
-        strcpy(httpd_status,HTTPD_400);
+    else
+    {
+        ESP_LOGE(TAG, "Bad request. ssid not present.");
+        strcpy(httpd_status, HTTPD_400);
         httpd_code = 400;
         goto end;
     }
 
-
-    cJSON * json_pass= cJSON_GetObjectItemCaseSensitive(json_data,"pass");
-    if (cJSON_IsString(json_pass) && json_pass->valuestring != NULL){
-        ESP_LOGI(TAG,"Received pass:%s",json_pass->valuestring);
+    cJSON *json_pass = cJSON_GetObjectItemCaseSensitive(json_data, "pass");
+    if (cJSON_IsString(json_pass) && json_pass->valuestring != NULL)
+    {
+        ESP_LOGI(TAG, "Received pass:%s", json_pass->valuestring);
     }
-    else{
-        ESP_LOGE(TAG,"Bad request. pass not present.");
-        strcpy(httpd_status,HTTPD_400);
+    else
+    {
+        ESP_LOGE(TAG, "Bad request. pass not present.");
+        strcpy(httpd_status, HTTPD_400);
         httpd_code = 400;
         goto end;
     }
 
-
-
-    if (set_config_str(CONFIG_NAMESPACE,CONFIG_WIFI_SSID_KEY,json_ssid->valuestring) != ESP_OK){
-        ESP_LOGE(TAG,"Error in set_config_str:%s %s",CONFIG_WIFI_SSID_KEY,json_ssid->valuestring);
-        strcpy(httpd_status,HTTPD_500);
+    if (set_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_SSID_KEY, json_ssid->valuestring) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error in set_config_str:%s %s", CONFIG_WIFI_SSID_KEY, json_ssid->valuestring);
+        strcpy(httpd_status, HTTPD_500);
         httpd_code = 500;
         goto end;
-
     }
 
-     if (set_config_str(CONFIG_NAMESPACE,CONFIG_WIFI_PASS_KEY,json_pass->valuestring) != ESP_OK){
-        ESP_LOGE(TAG,"Error in set_config_str:%s %s",CONFIG_WIFI_SSID_KEY,json_ssid->valuestring);
-        strcpy(httpd_status,HTTPD_500);
+    if (set_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_PASS_KEY, json_pass->valuestring) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error in set_config_str:%s %s", CONFIG_WIFI_SSID_KEY, json_ssid->valuestring);
+        strcpy(httpd_status, HTTPD_500);
         httpd_code = 500;
         goto end;
-
     }
-    if (commit_info(CONFIG_NAMESPACE) != ESP_OK){
-        ESP_LOGE(TAG,"commit_info:%s",CONFIG_WIFI_SSID_KEY);
-        strcpy(httpd_status,HTTPD_500);
+    if (commit_info(CONFIG_NAMESPACE) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "commit_info:%s", CONFIG_WIFI_SSID_KEY);
+        strcpy(httpd_status, HTTPD_500);
         httpd_code = 500;
         goto end;
-
     }
 
     httpd_code = 200;
-    strcpy(httpd_status,HTTPD_200);
+    strcpy(httpd_status, HTTPD_200);
 
-
-    end:
-        return httpd_code;
-        /* Delete a cJSON entity and all subentities. */
-        cJSON_Delete(json_data);
-
+end:
+    return httpd_code;
+    /* Delete a cJSON entity and all subentities. */
+    cJSON_Delete(json_data);
 }
 
 static char *get_wifi_response(char **str_response)
@@ -161,48 +159,49 @@ esp_err_t wifi_post_handler(httpd_req_t *req)
 {
     char *httpd_data = NULL;
     int ret;
-  
+
     int bytes_read = 0;
     int content_len = req->content_len;
-    ESP_LOGI(TAG,"content_len:%d",content_len);
-    httpd_data = (char *) malloc(content_len + 1);
-    memset(httpd_data,0,content_len + 1);
-    do{
-        
-        ret = httpd_req_recv(req, httpd_data + bytes_read,content_len-bytes_read);
-        if (ret < 0){
-            ESP_LOGE(TAG,"Error reading post data:%d",ret);
+    ESP_LOGI(TAG, "content_len:%d", content_len);
+    httpd_data = (char *)malloc(content_len + 1);
+    memset(httpd_data, 0, content_len + 1);
+    do
+    {
+
+        ret = httpd_req_recv(req, httpd_data + bytes_read, content_len - bytes_read);
+        if (ret < 0)
+        {
+            ESP_LOGE(TAG, "Error reading post data:%d", ret);
             return ESP_FAIL;
-
-        }else if (ret == 0){
-            ESP_LOGI(TAG,"finish reading post data");
+        }
+        else if (ret == 0)
+        {
+            ESP_LOGI(TAG, "finish reading post data");
             break;
-
         }
-        else{
-            ESP_LOGI(TAG," %d bytes read in post data",ret);
+        else
+        {
+            ESP_LOGI(TAG, " %d bytes read in post data", ret);
             bytes_read += ret;
-            ESP_LOGI(TAG,"total  bytes read %d in post data",bytes_read);
-
+            ESP_LOGI(TAG, "total  bytes read %d in post data", bytes_read);
         }
 
-    }while(bytes_read < content_len);
-
+    } while (bytes_read < content_len);
 
     char httpd_status[32] = {0};
-    int http_code = save_wifi_post_data(httpd_data,httpd_status);
+    int http_code = save_wifi_post_data(httpd_data, httpd_status);
     free(httpd_data);
     httpd_resp_set_status(req, httpd_status);
     char response[64] = {0};
-    if (http_code == 200){
+    if (http_code == 200)
+    {
         sprintf(response, "{\"ok\":\"%s\"}", httpd_status);
-
     }
-    else{
+    else
+    {
         sprintf(response, "{\"error\":\"%s\"}", httpd_status);
-
     }
-  
+
     httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
 }

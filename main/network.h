@@ -6,5 +6,7 @@
  * Input:    
  * Output:   
  */
-void start_softApWebServer();
+
+void start_softAPWebServer();
+void start_WifiSTA();
 #endif

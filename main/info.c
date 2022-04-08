@@ -120,19 +120,22 @@ bool is_wifi_configured()
 {
     char *wifi_ssid = NULL;
     char *wifi_pass = NULL;
+    bool retval = false;
     wifi_ssid = (char *)get_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_SSID_KEY);
     wifi_pass = (char *)get_config_str(CONFIG_NAMESPACE, CONFIG_WIFI_PASS_KEY);
     if (wifi_ssid && wifi_pass)
     {
         ESP_LOGI(TAG, "wifi configured -> ssid:%s password:%s", wifi_ssid, wifi_pass);
-        return true;
+        retval = true;
     }
     else
     {
         ESP_LOGI(TAG, "wifi not configured.");
-        return false;
+        retval = false;
+        
     }
 
     free(wifi_pass);
     free(wifi_ssid);
+    return retval;
 }
