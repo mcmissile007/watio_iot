@@ -8,6 +8,14 @@ typedef enum
     LED_FAST_BLINK
 
 } led_status_t;
+typedef enum
+{
+    UNPRESSED = 0,
+    PRESSED
+
+
+} button_status_t;
+button_status_t get_button_status();
 void setup_gpio();
 void turn_on_led();
 void turn_off_led();

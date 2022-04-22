@@ -12,7 +12,9 @@
 #define LOW 1
 #define HIGH 0
 #define LED GPIO_NUM_2
+#define BUTTON GPIO_NUM_16
 #define LED_Pin GPIO_Pin_2
+#define BUTTON_Pin GPIO_Pin_16
 
 void setup_gpio()
 {
@@ -39,7 +41,7 @@ void setup_gpio()
     // set as output mode
     io_conf.mode = GPIO_MODE_INPUT;
     // bit mask of the pins that you want to set,e.g.GPIO15/16
-    io_conf.pin_bit_mask = GPIO_Pin_16;
+    io_conf.pin_bit_mask = BUTTON_Pin;
     // enablde pull-down mode
     io_conf.pull_down_en = 1;
     // disable pull-up mode
@@ -49,6 +51,16 @@ void setup_gpio()
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     printf("GPIO config end.\n");
+}
+
+button_status_t get_button_status()
+{
+    int level = gpio_get_level(BUTTON);
+    if (level == 1){
+        return PRESSED;
+    }
+    return UNPRESSED;
+
 }
 
 void turn_on_led()
