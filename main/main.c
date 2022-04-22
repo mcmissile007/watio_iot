@@ -36,7 +36,7 @@ void app_main()
     memory_info(TAG);
     setup_gpio();
 
-    if (is_wifi_configured())
+    if (is_wifi_configured() && get_button_status() == UNPRESSED)
     {
         g_led_status = LED_FAST_BLINK;
         start_WifiSTA(&g_led_status);
