@@ -8,7 +8,7 @@
 #include "esp_wifi.h"
 #include "esp_log.h"
 #include "freertos/event_groups.h"
-#include "esp_http_server.h"
+
 // app includes
 #include "network.h"
 #include "info.h"

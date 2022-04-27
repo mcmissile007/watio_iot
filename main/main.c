@@ -16,6 +16,7 @@
 #include "config.h"
 #include "network.h"
 #include "io.h"
+#include "watio_app.h"
 
 #define TAG "main.c"
 
@@ -40,6 +41,7 @@ void app_main()
     {
         g_led_status = LED_FAST_BLINK;
         start_WifiSTA(&g_led_status);
+        start_watio_app();
     }
     else
     {
