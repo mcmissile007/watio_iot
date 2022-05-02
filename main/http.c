@@ -41,11 +41,9 @@ static char * read_response(struct esp_tls *tls_conn)
         }
 
         bytes_read = retval;
-        ESP_LOGD(TAG, "%d bytes read", bytes_read);
         response = (char*) realloc(response,(total_bytes_read+bytes_read));
         memcpy(response + total_bytes_read,buffer,bytes_read);
         total_bytes_read += bytes_read;
-        ESP_LOGD(TAG, "%d total bytes read", total_bytes_read);
 
     } while(1);
 
@@ -64,8 +62,6 @@ static int write_request(struct esp_tls *tls_conn,char * request){
     do {
         int ret = esp_tls_conn_write(tls_conn,request + written_bytes,strlen(request) - written_bytes);
         if (ret >= 0) {
-            ESP_LOGD(TAG, "http_request %d bytes written", ret);
-            ESP_LOGD(TAG, "http_request %d bytes request", strlen(request));
             written_bytes += ret;
         } else if (ret != ESP_TLS_ERR_SSL_WANT_READ  && ret != ESP_TLS_ERR_SSL_WANT_WRITE)
         {
@@ -93,10 +89,6 @@ static char * get_body(char * response){
     body += strlen(header_end);
     body_len = strlen(body);
     full_response_len = strlen(response);
-    ESP_LOGI(TAG, "response body :%s\n", body);
-    ESP_LOGI(TAG, "response body lend :%d\n", body_len);
-    ESP_LOGI(TAG, "full response len :%d\n", full_response_len);
-
     return body;
 }
 
@@ -114,13 +106,11 @@ static int validate_response(const char * response){
         return ESP_FAIL;
     }
     strncpy(protocol, response, 8);
-    ESP_LOGI(TAG, "protocol :%s\n", protocol);
     if ((strcmp(protocol,"HTTP/1.0") != 0) && (strcmp(protocol,"HTTP/1.1") != 0) ){
         ESP_LOGE(TAG,"response protocol error");
         return ESP_FAIL;
     }
     strncpy(http_code, response + 9, 3);
-    ESP_LOGI(TAG, "http_code :%s\n", http_code);
     if (strcmp(http_code,"200") != 0){
         ESP_LOGE(TAG,"response http_code error");
         return ESP_FAIL;
@@ -156,8 +146,8 @@ cJSON * http_request(char *url, char * request)
     }
     //ESP_LOGI(TAG,"response:%s",response);
     body_response = get_body(response);
-    if (body_response){
-        ESP_LOGI(TAG,"body_response:%s",body_response);
+    if (body_response == NULL){
+        goto exit;
     }
     json_response = cJSON_Parse(body_response);
     if (json_response == NULL)
@@ -170,11 +160,9 @@ cJSON * http_request(char *url, char * request)
         }
         cJSON_Delete(json_response);
     }
-    memory_info("end http_request");
     exit:
-        ESP_LOGI(TAG,"exit:freeing memory");
         esp_tls_conn_delete(tls_conn);
         free(response);
-     memory_info("after freeing memory http_request");
+    memory_info("end http_request");
     return json_response;
 }
