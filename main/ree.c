@@ -67,9 +67,9 @@ int get_ree_url(char *url, int day, int start_h, int end_h)
     return 0;
 }
 
-int parse_json_response(const cJSON *json_response, price_t **prices, int total_num_prices, int len_new_prices)
+int parse_json_response(const cJSON *json_response, price_t *prices, int current_num_prices)
 {
-    //allocated heap memory for prices that must be free.
+
     int num_prices = 0;
     int num_included = 0;
     const cJSON *json_data = NULL;
@@ -77,8 +77,7 @@ int parse_json_response(const cJSON *json_response, price_t **prices, int total_
     const cJSON *json_type = NULL;
     const cJSON *json_array_included = NULL;
     const cJSON *json_item_included = NULL;
-    int new_size = total_num_prices +len_new_prices + 1;
-    *prices = (price_t *) realloc(*prices,sizeof(price_t)*(new_size));
+
     json_errors = cJSON_GetObjectItemCaseSensitive(json_response, "errors");
     if (json_errors != NULL)
     {
@@ -116,23 +115,25 @@ int parse_json_response(const cJSON *json_response, price_t **prices, int total_
             {
                 price_t price = {0};
                 int validate = 0;
+                struct tm tminfo;
                 cJSON *json_value = cJSON_GetObjectItemCaseSensitive(json_item_value, "value");
                 cJSON *json_datetime = cJSON_GetObjectItemCaseSensitive(json_item_value, "datetime");
                 if (cJSON_IsString(json_datetime) && (json_datetime->valuestring != NULL))
                 {
-                    //ESP_LOGI(TAG, "datime: %s", json_datetime->valuestring);
-                    strptime(json_datetime->valuestring, "%Y-%m-%dT%H:%M:%S.%f%z", &price.timeinfo);
-                    // prices[num_prices].epoch = mktime(&prices[num_prices].timeinfo);
+                    strptime(json_datetime->valuestring, "%Y-%m-%dT%H:%M:%S.%f%z", &tminfo);
+                    price.day = tminfo.tm_mday;
+                    price.hour = tminfo.tm_hour;
                     validate += 1;
                 }
                 if (cJSON_IsNumber(json_value))
                 {
                     double value = json_value->valuedouble;
-                    price.value = (int) value;
+                    //min value 1 euro MWH
+                    price.value = 1 + (int) value;
                     validate += 1;
                 }
                 if (validate == 2){
-                    (*prices)[total_num_prices + num_prices] = price;
+                    prices[current_num_prices + num_prices] = price;
                     ++num_prices;
                 }
             }

@@ -22,6 +22,8 @@
 #define TAG "watio_app"
 
 #define MAX_PRICES_LEN 48
+#define UPDATE_HOUR 20
+#define UPDATE_MIN 30
 
 void setup_sntp()
 {
@@ -66,156 +68,225 @@ static void sort_prices(price_t *prices, int len)
     }
 }
 
-static int get_prices(int day, int start_h, int end_h, price_t **prices, int total_num_prices)
+
+static int get_prices(int day, int start_h, int end_h, price_t *prices, int total_num_prices)
 {
-    char ree_url[180];
-    char ree_request[256];
+    char url[180];
+    char request[256];
     int num_prices = 0;
     cJSON *json_response = NULL;
-    int len_new_prices = (end_h - start_h) + 1;
-    ESP_LOGI(TAG, "total_num_prices: %d", total_num_prices);
-    ESP_LOGI(TAG, "len_new_prices: %d", len_new_prices);
-    if (get_ree_url(ree_url, day, start_h, end_h) == ESP_FAIL)
+    if (get_ree_url(url, day, start_h, end_h) == ESP_FAIL)
     {
         return num_prices;
     }
-    get_ree_request(ree_url, ree_request);
-    json_response = http_request(ree_url, ree_request);
+    get_ree_request(url, request);
+    json_response = http_request(url, request);
     if (json_response == NULL)
     {
         goto exit;
     }
-    num_prices = parse_json_response(json_response, prices,total_num_prices, len_new_prices);
-    //ESP_LOGI(TAG, "num_prices: %d", num_prices);
-    // ESP_LOGI(TAG, "value: %d",(int) prices[0].value);
+    num_prices = parse_json_response(json_response, prices,total_num_prices);
     cJSON_Delete(json_response);
-    // sort_prices(prices,num_prices);
-
     exit:
         cJSON_Delete(json_response);
     return num_prices;
 }
 
-static int get_all_available_prices(price_t **prices){
-    int total_num_prices = 0;
-    int num_prices = 0;
-    for (int d=0; d<2; d++){
-        for (int h =0; h<24; h+=4){
-            ESP_LOGI(TAG, "return prices: %d:%d:%d ",d, h, h+3);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            num_prices = get_prices(d, h, h+3, prices, total_num_prices);
-            ESP_LOGI(TAG, "return num_prices: %d", num_prices);
-            if (num_prices <= 0){
-                ESP_LOGE(TAG, "num_prices: %d", num_prices);
-                return ESP_FAIL;
-            }
-            total_num_prices +=  num_prices;
-            ESP_LOGI(TAG, "total num_prices: %d", total_num_prices);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-    }
-    return total_num_prices;
-}
-
-static int get_today_prices(price_t **prices){
-    int total_num_prices = 0;
-    int num_prices = 0;
-    for (int h =0; h<24; h+=4){
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        num_prices = get_prices(0, h, h+3, prices, total_num_prices);
-        ESP_LOGI(TAG, "return num_prices: %d", num_prices);
-        if (num_prices <= 0){
-            ESP_LOGE(TAG, "num_prices: %d", num_prices);
-            return ESP_FAIL;
-        }
-        total_num_prices +=  num_prices;
-        ESP_LOGI(TAG, "total num_prices: %d", total_num_prices);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-
-    return total_num_prices;
-}
-
-static int get_tomorrow_prices(price_t **prices){
-    int total_num_prices = 0;
-    int num_prices = 0;
-    for (int h =0; h<24; h+=4){
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        num_prices = get_prices(1, h, h+3, prices, total_num_prices);
-        ESP_LOGI(TAG, "return num_prices: %d", num_prices);
-        if (num_prices <= 0){
-            ESP_LOGE(TAG, "num_prices: %d", num_prices);
-            return ESP_FAIL;
-        }
-        total_num_prices +=  num_prices;
-        ESP_LOGI(TAG, "total num_prices: %d", total_num_prices);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-
-    return total_num_prices;
-}
-
-static int get_prices_by_day(price_t **prices, int day){
+static int get_prices_by_day(price_t *prices, int len, int day, int step){
     //day = 0 today
     //day = 1 tomorrow
-    int total_num_prices = 0;
+    int current_num_prices = 0;
     int num_prices = 0;
-    for (int h =0; h<24; h+=4){
+    for (int h =0; h<24; h+=step){
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        num_prices = get_prices(day, h, h+3, prices, total_num_prices);
+        num_prices = get_prices(day, h, h+step-1, prices,current_num_prices);
         ESP_LOGI(TAG, "return num_prices: %d", num_prices);
         if (num_prices <= 0){
             ESP_LOGE(TAG, "num_prices: %d", num_prices);
             return ESP_FAIL;
         }
-        total_num_prices +=  num_prices;
-        ESP_LOGI(TAG, "total num_prices: %d", total_num_prices);
+        current_num_prices +=  num_prices;
+        ESP_LOGI(TAG, "current num_prices: %d", current_num_prices);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
-    return total_num_prices;
+    return current_num_prices;
 }
+
+static int load_prices(price_t *prices,int len, int day, int step){
+    int num_prices = 0;
+    time_t now = 0;
+    struct tm timeinfo = {0};
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    if (timeinfo.tm_year < (2022 - 1900))
+    {
+       return ESP_FAIL;
+    }
+    num_prices = get_prices_by_day(prices,len,day,step);
+    if (num_prices < len){
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+
+}
+/*
+void show_prices(price_t * prices, int len){
+    for (int i = 0 ; i < len ; i ++){
+        ESP_LOGI(TAG, "%d.value: %d",i,(int) prices[i].value);
+        ESP_LOGI(TAG, "%d.hour: %d",i, prices[i].hour);
+        ESP_LOGI(TAG, "%d.day: %d",i, prices[i].day);
+    }
+}
+*/
+
+void show_line_prices(price_t * prices, int len){
+    for (int i = 0 ; i < len ; i ++){
+        ESP_LOGI(TAG, "%d->value: %d hour: %d  day: %d",i,(int) prices[i].value,prices[i].hour,prices[i].day);
+    }
+}
+
+void delete_prices(price_t *prices, int len){
+     for (int i = 0 ; i < len ; i ++){
+         prices[i].value = 0;
+         prices[i].day = 0;
+         prices[i].hour = 0;
+     }
+
+}
+
+static int change_day_prices(price_t *today_prices,price_t *tomorrow_prices, int len){
+    for (int i = 0; i < len; i++){
+        if (tomorrow_prices[i].day == 0 || tomorrow_prices[i].value == 0){
+            return ESP_FAIL;
+        }
+        today_prices[i] = tomorrow_prices[i];
+    }
+    delete_prices(tomorrow_prices,len);
+    sort_prices(today_prices,len);
+    return ESP_OK;
+}
+
+int validate_prices(price_t *prices, int len,int day){
+    int count_ok = 0;
+    time_t now = 0;
+    struct tm tm_now = {0};
+    time(&now);
+    now = now + (day*86400);
+    localtime_r(&now, &tm_now);
+    if (tm_now.tm_year < (2022 - 1900))
+    {
+        return ESP_FAIL;
+    }
+    int day_now = tm_now.tm_mday;
+    for (int h = 0; h < 24; h++){
+        for (int i = 0 ; i < len ; i ++){
+            if (prices[i].hour == h && prices[i].day == day_now){
+                count_ok += 1;
+                break;
+            }
+        }
+    }
+    if (count_ok ==  24){
+        return ESP_OK;
+    }
+    return ESP_FAIL;
+
+}
+
+
+
 static void watio_app_task(void *pvParameters)
 {
     time_t now = 0;
-    struct tm timeinfo = {0};
+    struct tm tminfo = {0};
     char strftime_buf[64];
-    price_t *prices = NULL;
-    int total_num_prices = 0;
+    price_t today_prices[LEN_PRICES] = {0};
+    price_t tomorrow_prices[LEN_PRICES] = {0};
+    int validate = 0;
+    int iter = 0;
+    int rand_hour=0;
+    int rand_min= 0;
 
     ESP_LOGI(TAG, "Initializing SNTP");
     setup_sntp();
     memory_info("watio_app_task");
     for (;;)
     {
-        free(prices);
-        prices = NULL;
         time(&now);
-        localtime_r(&now, &timeinfo);
-        strftime(strftime_buf, sizeof(strftime_buf), "%d/%m/%Y %H:%M:%S", &timeinfo);
-        // ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
-        if (timeinfo.tm_year < (2022 - 1900))
+        localtime_r(&now, &tminfo);
+        if (tminfo.tm_year < (2022 - 1900))
         {
-            ESP_LOGI(TAG, "Error in datetime: %s", strftime_buf);
+            ESP_LOGI(TAG, "Error in datetime:");
             sntp_stop();
             vTaskDelay(10000 / portTICK_PERIOD_MS);
             sntp_init();
             vTaskDelay(5000 / portTICK_PERIOD_MS);
             continue;
         }
-        total_num_prices = get_prices_by_day(&prices,0);
-        for (int i = 0 ; i < total_num_prices ; i ++){
-            ESP_LOGI(TAG, "%d.value: %d",i,(int) prices[i].value);
-            ESP_LOGI(TAG, "%d.hour: %d",i, prices[i].timeinfo.tm_hour);
+        if (rand_hour == 0 && rand_min == 0)
+        {
+            srand(time(&now));
+            rand_hour= rand() % 3; //0, 1,2
+            rand_min= rand() % 50; //0...49
+            // (49 * 3 ) - 1 =  146 slots.
         }
-        ESP_LOGI(TAG,"Sorted prices by value:");
-        sort_prices(prices,total_num_prices);
-        for (int i = 0 ; i < total_num_prices ; i ++){
-            ESP_LOGI(TAG, "%d.value: %d",i,(int) prices[i].value);
-            ESP_LOGI(TAG, "%d.hour: %d",i, prices[i].timeinfo.tm_hour);
+        strftime(strftime_buf, sizeof(strftime_buf), "%d/%m/%Y %H:%M:%S", &tminfo);
+        ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
+        validate = validate_prices(today_prices,LEN_PRICES,TODAY);
+        ESP_LOGI(TAG, "validate_prices for today: %d", validate);
+        if (validate != ESP_OK){
+            ESP_LOGI(TAG, "must load today prices");
+            int retval = load_prices(today_prices,LEN_PRICES,TODAY, STEP);
+            if (retval == ESP_FAIL){
+                delete_prices(today_prices,LEN_PRICES);
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                continue;
+            }
+            sort_prices(today_prices,LEN_PRICES);
         }
-        memory_info("watio_app_task end getting prices.");
-        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        if (tminfo.tm_hour == 23 && tminfo.tm_min == 59){
+            ESP_LOGI(TAG, "End of day");
+            ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
+            int retval = change_day_prices(today_prices,tomorrow_prices,LEN_PRICES);
+            if (retval == ESP_FAIL){
+                ESP_LOGE(TAG, "something is wrong getting tomorrow prices");
+                esp_restart();
+            }
+            //just one execution.
+            vTaskDelay(65000 / portTICK_PERIOD_MS);
+            continue;
+        }
+        if (tminfo.tm_min == 0){
+             ESP_LOGI(TAG, "It's time to turn on/off. change the price per hour");
+             ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
+
+        }
+        if (tminfo.tm_hour >= (21+rand_hour) && tminfo.tm_min >= rand_min){
+            ESP_LOGI(TAG, "It's time to get tomorrow prices");
+            ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
+            validate = validate_prices(tomorrow_prices,LEN_PRICES,TOMORROW);
+            ESP_LOGI(TAG, "validate_prices for tomorrow: %d", validate);
+            if (validate != ESP_OK){
+                ESP_LOGI(TAG, "must load tomorrow prices");
+                int retval = load_prices(tomorrow_prices,LEN_PRICES,TOMORROW, STEP);
+                if (retval == ESP_FAIL){
+                    delete_prices(tomorrow_prices,LEN_PRICES);
+                    vTaskDelay(5000 / portTICK_PERIOD_MS);
+                    continue;
+                }
+                sort_prices(tomorrow_prices,LEN_PRICES);
+            }
+        }
+
+        ESP_LOGI(TAG, "today prices:");
+        show_line_prices(today_prices,LEN_PRICES);
+        ESP_LOGI(TAG, "tomorrow prices:");
+        show_line_prices(tomorrow_prices,LEN_PRICES);
+        iter += 1;
+        ESP_LOGI(TAG, ".iter: %d, rand_hour:%d, rand_min:%d", iter,21 + rand_hour,rand_min);
+        ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
+        vTaskDelay(20000 / portTICK_PERIOD_MS);
 
 
 
