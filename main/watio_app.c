@@ -105,13 +105,32 @@ static int get_prices(int day, int start_h, int end_h, price_t *prices, int tota
         cJSON_Delete(json_response);
     return num_prices;
 }
-
+static bool check_if_already_have(price_t *prices, int len, int day, int h, int step){
+    int count_ok = 0;
+    for (int i = h; i <= h+step-1; i++){
+        ESP_LOGI(TAG, "check_if_already_have: %d", i);
+        if (prices[i].hour == h && prices[i].day == day && prices[i].value != 0){
+            count_ok += 1;
+            ESP_LOGI(TAG, "count_ok %d", count_ok);
+        }
+    }
+    if (count_ok == step){
+        ESP_LOGI(TAG, "count_ok equal to step: %d", step);
+        ESP_LOGI(TAG, "ccheck_if_already_have true");
+        return true;
+    }
+    ESP_LOGI(TAG, "ccheck_if_already_have false");
+    return false;
+}
 static int get_prices_by_day(price_t *prices, int len, int day, int step){
     //day = 0 today
     //day = 1 tomorrow
     int current_num_prices = 0;
     int num_prices = 0;
     for (int h =0; h<24; h+=step){
+        if (check_if_already_have(prices,len,day,h,step)){
+            continue;
+        }
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         num_prices = get_prices(day, h, h+step-1, prices,current_num_prices);
         ESP_LOGI(TAG, "return num_prices: %d", num_prices);
