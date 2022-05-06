@@ -18,6 +18,7 @@
 #include "http.h"
 #include "types.h"
 #include "ree.h"
+#include "io.h"
 
 #define TAG "watio_app"
 
@@ -39,6 +40,19 @@ void setup_sntp()
     tzset();
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, "es.pool.ntp.org");
+}
+static bool is_better_n_hour(int hour,int n,price_t *sorted_prices,int len){
+    int better_count=0;
+    for (int i=0; i < len ; i++){
+        if (sorted_prices[i].hour != hour){
+            better_count ++;
+            if (better_count >=n) return false;
+        }
+        else{
+            return true;
+        }
+    }
+    return true;
 }
 static int get_min_position(price_t *prices, int len, int start)
 {
@@ -155,15 +169,13 @@ void delete_prices(price_t *prices, int len){
 
 }
 
-static int change_day_prices(price_t *today_prices,price_t *tomorrow_prices, int len){
+static int update_today_by_tomorrow_prices(price_t *today_prices,price_t *tomorrow_prices, int len){
     for (int i = 0; i < len; i++){
         if (tomorrow_prices[i].day == 0 || tomorrow_prices[i].value == 0){
             return ESP_FAIL;
         }
         today_prices[i] = tomorrow_prices[i];
     }
-    delete_prices(tomorrow_prices,len);
-    sort_prices(today_prices,len);
     return ESP_OK;
 }
 
@@ -194,6 +206,26 @@ int validate_prices(price_t *prices, int len,int day){
 
 }
 
+void initialize_scheduler(scheduler_t * scheduler,int len){
+    for (int i=0; i < len; i++){
+        scheduler[i].state = DEFAULT_STATE;
+        scheduler[i].last_execution = 0;
+    }
+}
+
+void show_scheduler(scheduler_t * scheduler,int len){
+    for (int i=0; i < len; i++){
+        ESP_LOGI(TAG,"hour:%d, state:%d",i,scheduler[i].state);
+    }
+}
+
+void update_scheduler(price_t * prices,scheduler_t * scheduler,int len, int n){
+     for (int i=0; i < len; i++){
+         scheduler[i].state = is_better_n_hour(i,n,prices,len);
+     }
+
+}
+
 
 
 static void watio_app_task(void *pvParameters)
@@ -203,14 +235,18 @@ static void watio_app_task(void *pvParameters)
     char strftime_buf[64];
     price_t today_prices[LEN_PRICES] = {0};
     price_t tomorrow_prices[LEN_PRICES] = {0};
+    scheduler_t scheduler[LEN_PRICES] = {0};
     int validate = 0;
     int iter = 0;
     int rand_hour=0;
     int rand_min= 0;
+    int N = 12;
+    initialize_scheduler(scheduler,LEN_PRICES);
 
     ESP_LOGI(TAG, "Initializing SNTP");
     setup_sntp();
     memory_info("watio_app_task");
+    //switch_on_relay();
     for (;;)
     {
         time(&now);
@@ -244,24 +280,35 @@ static void watio_app_task(void *pvParameters)
                 continue;
             }
             sort_prices(today_prices,LEN_PRICES);
+            update_scheduler(today_prices,scheduler,LEN_PRICES,N);
+            show_scheduler(scheduler,LEN_PRICES);
         }
         if (tminfo.tm_hour == 23 && tminfo.tm_min == 59){
             ESP_LOGI(TAG, "End of day");
             ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
-            int retval = change_day_prices(today_prices,tomorrow_prices,LEN_PRICES);
+            int retval = update_today_by_tomorrow_prices(today_prices,tomorrow_prices,LEN_PRICES);
             if (retval == ESP_FAIL){
                 ESP_LOGE(TAG, "something is wrong getting tomorrow prices");
                 esp_restart();
             }
+            delete_prices(tomorrow_prices,LEN_PRICES);
+            sort_prices(today_prices,LEN_PRICES);
+            update_scheduler(today_prices,scheduler,LEN_PRICES,N);
+            show_scheduler(scheduler,LEN_PRICES);
             //just one execution.
             vTaskDelay(65000 / portTICK_PERIOD_MS);
             continue;
         }
-        if (tminfo.tm_min == 0){
-             ESP_LOGI(TAG, "It's time to turn on/off. change the price per hour");
-             ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
-
+        int time_since_last_update = now -  scheduler[tminfo.tm_hour].last_execution;
+        ESP_LOGI(TAG, "time_since_last_update: %d", time_since_last_update);
+        bool state = scheduler[tminfo.tm_hour].state;
+        ESP_LOGI(TAG, "output must be: %s",state?"on":"off");
+        if (time_since_last_update > 60){
+            switch_relay(state);
+            ESP_LOGI(TAG, "switch relay: %s",state?"on":"off");
+            scheduler[tminfo.tm_hour].last_execution = mktime(&tminfo);
         }
+
         if (tminfo.tm_hour >= (21+rand_hour) && tminfo.tm_min >= rand_min){
             ESP_LOGI(TAG, "It's time to get tomorrow prices");
             ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
@@ -283,12 +330,12 @@ static void watio_app_task(void *pvParameters)
         show_line_prices(today_prices,LEN_PRICES);
         ESP_LOGI(TAG, "tomorrow prices:");
         show_line_prices(tomorrow_prices,LEN_PRICES);
+        ESP_LOGI(TAG, "scheduler:");
+        show_scheduler(scheduler,LEN_PRICES);
         iter += 1;
         ESP_LOGI(TAG, ".iter: %d, rand_hour:%d, rand_min:%d", iter,21 + rand_hour,rand_min);
         ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
-        vTaskDelay(20000 / portTICK_PERIOD_MS);
-
-
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
 
     }
     vTaskDelete(NULL);

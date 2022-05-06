@@ -19,6 +19,7 @@ button_status_t get_button_status();
 void setup_gpio();
 void turn_on_led();
 void turn_off_led();
+void switch_relay(bool state);
 void blink(int t, int n);
 void update_led_status(led_status_t led_status);
 #endif

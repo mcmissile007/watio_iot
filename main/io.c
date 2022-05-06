@@ -13,20 +13,35 @@
 #define HIGH 0
 #define LED GPIO_NUM_2
 #define BUTTON GPIO_NUM_16
+#define RELAY GPIO_NUM_15
 #define LED_Pin GPIO_Pin_2
 #define BUTTON_Pin GPIO_Pin_16
+#define RELAY_Pin GPIO_Pin_15
 
 void setup_gpio()
 {
 
     gpio_config_t io_conf;
     // disable interrupt
-    // PIN 5 LED OUTPUT
+    // PIN 2 LED OUTPUT
     io_conf.intr_type = GPIO_INTR_DISABLE;
     // set as output mode
     io_conf.mode = GPIO_MODE_OUTPUT;
-    // bit mask of the pins that you want to set,e.g.GPIO15/16
     io_conf.pin_bit_mask = LED_Pin;
+    // disable pull-down mode
+    io_conf.pull_down_en = 0;
+    // disable pull-up mode
+    io_conf.pull_up_en = 0;
+    // configure GPIO with the given settings
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+
+    // PIN 15 RELAY OUTPUT
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    // set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = RELAY_Pin;
     // disable pull-down mode
     io_conf.pull_down_en = 0;
     // disable pull-up mode
@@ -71,6 +86,22 @@ void turn_off_led()
 {
     gpio_set_level(LED, LOW);
 }
+void switch_on_relay(){
+    gpio_set_level(RELAY, LOW);
+}
+void switch_off_relay(){
+    gpio_set_level(RELAY, HIGH);
+}
+
+void switch_relay(bool state){
+    if (state){
+        switch_on_relay();
+    }
+    else{
+        switch_off_relay();
+    }
+}
+
 
 void blink(int t, int n)
 {
