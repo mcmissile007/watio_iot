@@ -119,7 +119,7 @@ static bool check_if_already_have(price_t *prices, int len, int day, int h, int 
         ESP_LOGI(TAG, "ccheck_if_already_have true");
         return true;
     }
-    ESP_LOGI(TAG, "ccheck_if_already_have false");
+    ESP_LOGI(TAG, "check_if_already_have false");
     return false;
 }
 static int get_prices_by_day(price_t *prices, int len, int day, int step){
@@ -179,24 +179,6 @@ void show_line_prices(price_t * prices, int len){
     }
 }
 
-void delete_prices(price_t *prices, int len){
-     for (int i = 0 ; i < len ; i ++){
-         prices[i].value = 0;
-         prices[i].day = 0;
-         prices[i].hour = 0;
-     }
-
-}
-
-static int update_today_by_tomorrow_prices(price_t *today_prices,price_t *tomorrow_prices, int len){
-    for (int i = 0; i < len; i++){
-        if (tomorrow_prices[i].day == 0 || tomorrow_prices[i].value == 0){
-            return ESP_FAIL;
-        }
-        today_prices[i] = tomorrow_prices[i];
-    }
-    return ESP_OK;
-}
 
 int validate_prices(price_t *prices, int len,int day){
     int count_ok = 0;
@@ -294,7 +276,6 @@ static void watio_app_task(void *pvParameters)
             ESP_LOGI(TAG, "must load today prices");
             int retval = load_prices(today_prices,LEN_PRICES,TODAY, STEP);
             if (retval == ESP_FAIL){
-                delete_prices(today_prices,LEN_PRICES);
                 vTaskDelay(5000 / portTICK_PERIOD_MS);
                 continue;
             }
@@ -305,15 +286,13 @@ static void watio_app_task(void *pvParameters)
         if (tminfo.tm_hour == 23 && tminfo.tm_min == 59){
             ESP_LOGI(TAG, "End of day");
             ESP_LOGI(TAG, "The current date/time  is: %s", strftime_buf);
-            int retval = update_today_by_tomorrow_prices(today_prices,tomorrow_prices,LEN_PRICES);
-            if (retval == ESP_FAIL){
-                ESP_LOGE(TAG, "something is wrong getting tomorrow prices");
-                esp_restart();
-            }
-            delete_prices(tomorrow_prices,LEN_PRICES);
+            memcpy(&today_prices,&tomorrow_prices,sizeof(tomorrow_prices));
+            bzero(&tomorrow_prices,sizeof(tomorrow_prices));
             sort_prices(today_prices,LEN_PRICES);
             update_scheduler(today_prices,scheduler,LEN_PRICES,N);
             show_scheduler(scheduler,LEN_PRICES);
+            rand_hour= rand() % 3; //0, 1,2
+            rand_min= rand() % 50; //0...49
             //just one execution.
             vTaskDelay(65000 / portTICK_PERIOD_MS);
             continue;
@@ -337,7 +316,6 @@ static void watio_app_task(void *pvParameters)
                 ESP_LOGI(TAG, "must load tomorrow prices");
                 int retval = load_prices(tomorrow_prices,LEN_PRICES,TOMORROW, STEP);
                 if (retval == ESP_FAIL){
-                    delete_prices(tomorrow_prices,LEN_PRICES);
                     vTaskDelay(5000 / portTICK_PERIOD_MS);
                     continue;
                 }
