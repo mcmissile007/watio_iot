@@ -31,14 +31,15 @@ void memory_info(const char *msg)
     ESP_LOGI(TAG, "%s,taskuxHighWaterMark: %d\n", msg, uxHighWaterMark);
     // The value returned is the high water mark in words
     // on a 32 bit machine a return value of 1 would indicate that 4 bytes of stack were unused
-    uint32_t free_heap_size=0, min_free_heap_size=0;
+    uint32_t free_heap_size = 0, min_free_heap_size = 0;
     free_heap_size = esp_get_free_heap_size();
-    min_free_heap_size = esp_get_minimum_free_heap_size(); 
-    ESP_LOGI(TAG,"\n %s,free heap size = %d \t  min_free_heap_size = %d \n",msg,free_heap_size,min_free_heap_size); 
+    min_free_heap_size = esp_get_minimum_free_heap_size();
+    ESP_LOGI(TAG, "\n %s,free heap size = %d \t  min_free_heap_size = %d \n", msg, free_heap_size, min_free_heap_size);
+    // minimum free heap size that was ever seen during program execution
 }
 
-
-int set_config_str(const char *namespace,const char *key,const char * value){
+int set_config_str(const char *namespace, const char *key, const char *value)
+{
     nvs_handle_t nvs_handle_conf;
     esp_err_t retval;
     retval = nvs_open(namespace, NVS_READWRITE, &nvs_handle_conf);
@@ -47,7 +48,7 @@ int set_config_str(const char *namespace,const char *key,const char * value){
         ESP_LOGE(TAG, "nvs_open:%s", esp_err_to_name(retval));
         return ESP_FAIL;
     }
-    retval = nvs_set_str(nvs_handle_conf,key,value);
+    retval = nvs_set_str(nvs_handle_conf, key, value);
 
     if (retval != ESP_OK)
     {
@@ -55,9 +56,9 @@ int set_config_str(const char *namespace,const char *key,const char * value){
         return ESP_FAIL;
     }
     return ESP_OK;
-
 }
- int commit_info(const char *namespace){
+int commit_info(const char *namespace)
+{
     nvs_handle_t nvs_handle_conf;
     esp_err_t retval;
     retval = nvs_open(namespace, NVS_READWRITE, &nvs_handle_conf);
@@ -73,8 +74,7 @@ int set_config_str(const char *namespace,const char *key,const char * value){
         return ESP_FAIL;
     }
     return ESP_OK;
-
- }
+}
 
 char *get_config_str(const char *namespace, const char *key)
 {
@@ -113,7 +113,6 @@ char *get_config_str(const char *namespace, const char *key)
 
     value[required_size - 1] = '\0'; // really not necessary with memset
 
-
     ESP_LOGD(TAG, "value len: %d\n", required_size);
     ESP_LOGD(TAG, "value: %s\n", value);
     return value;
@@ -135,9 +134,7 @@ bool is_wifi_configured()
     {
         ESP_LOGI(TAG, "wifi not configured.");
         retval = false;
-        
     }
-
     free(wifi_pass);
     free(wifi_ssid);
     return retval;
