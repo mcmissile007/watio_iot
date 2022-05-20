@@ -76,19 +76,14 @@ static int write_request(struct esp_tls *tls_conn,char * request){
 
 static char * get_body(char * response){
     char header_end[5] = "\r\n\r\n";
-    char *body = NULL; 
-    int full_response_len = 0;
-    int body_len = 0;
-
-    body = strstr(response,header_end);
+    char *body = NULL;
+     body = strstr(response,header_end);
     if (body == NULL){
         ESP_LOGE(TAG, "body null!");
         return NULL;
 
     }
     body += strlen(header_end);
-    body_len = strlen(body);
-    full_response_len = strlen(response);
     return body;
 }
 
@@ -129,6 +124,7 @@ cJSON * http_request(char *url, char * request)
         .cacert_pem_buf = server_root_cert_pem_start,
         .cacert_pem_bytes = server_root_cert_pem_end - server_root_cert_pem_start,
     };
+    cfg.timeout_ms = 30000;
     ESP_LOGI(TAG,"Trying to connect...");
     tls_conn= esp_tls_conn_http_new(url, &cfg);
     if(tls_conn != NULL) {

@@ -31,7 +31,10 @@ void memory_info(const char *msg)
     ESP_LOGI(TAG, "%s,taskuxHighWaterMark: %d\n", msg, uxHighWaterMark);
     // The value returned is the high water mark in words
     // on a 32 bit machine a return value of 1 would indicate that 4 bytes of stack were unused
-    ESP_LOGI(TAG, "%s,free heap size: %d\n", msg, esp_get_free_heap_size());
+    uint32_t free_heap_size=0, min_free_heap_size=0;
+    free_heap_size = esp_get_free_heap_size();
+    min_free_heap_size = esp_get_minimum_free_heap_size(); 
+    ESP_LOGI(TAG,"\n %s,free heap size = %d \t  min_free_heap_size = %d \n",msg,free_heap_size,min_free_heap_size); 
 }
 
 
